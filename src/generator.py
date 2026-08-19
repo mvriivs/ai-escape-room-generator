@@ -154,14 +154,27 @@ def _scatter_content(
             idx += 1
 
 
-def generate_level(
-    difficulty: Difficulty, seed: int | None = None, max_attempts: int = 20
+def generate_level_from_params(
+    cells_x: int,
+    cells_y: int,
+    enemy_count: int,
+    trap_count: int,
+    treasure_count: int,
+    seed: int | None = None,
+    max_attempts: int = 20,
 ) -> tuple[Grid, ValidationResult]:
-    """Genereaza un nivel pentru dificultatea data. Fiind construit ca
-    labirint perfect, e valid aproape mereu din prima -- max_attempts e doar
-    o plasa de siguranta (ex. labirinturi minuscule unde traseul e prea
-    scurt ca sa incapa Cheie + Usa distincte)."""
-    params = DIFFICULTY_PRESETS[difficulty]
+    """Genereaza un nivel dintr-un set arbitrar de parametri (nu doar dintr-o
+    presetare Easy/Medium/Hard) -- baza refolosita atat de `generate_level`
+    cat si de algoritmul genetic (`genetic.py`), care exploreaza combinatii
+    de parametri ca sa gaseasca un scor de dificultate cat mai apropiat de
+    o tinta ceruta. Fiind construit ca labirint perfect, e valid aproape
+    mereu din prima -- max_attempts e doar o plasa de siguranta (ex.
+    labirinturi minuscule unde traseul e prea scurt ca sa incapa Cheie+Usa)."""
+    cells_x = max(2, cells_x)
+    cells_y = max(2, cells_y)
+    enemy_count = max(0, enemy_count)
+    trap_count = max(0, trap_count)
+    treasure_count = max(0, treasure_count)
 
     result: ValidationResult | None = None
     grid: Grid | None = None
@@ -170,7 +183,7 @@ def generate_level(
         attempt_seed = None if seed is None else seed * 1_000_003 + attempt
         rng = random.Random(attempt_seed)
 
-        grid = _generate_maze(params.cells_x, params.cells_y, rng)
+        grid = _generate_maze(cells_x, cells_y, rng)
         path = _longest_path(grid, rng)
 
         if len(path) < 4:
@@ -193,9 +206,9 @@ def generate_level(
             rng,
             exclude=set(path),
             counts={
-                Cell.ENEMY: params.enemy_count,
-                Cell.TRAP: params.trap_count,
-                Cell.TREASURE: params.treasure_count,
+                Cell.ENEMY: enemy_count,
+                Cell.TRAP: trap_count,
+                Cell.TREASURE: treasure_count,
             },
         )
 
@@ -204,3 +217,19 @@ def generate_level(
             return grid, result
 
     return grid, result
+
+
+def generate_level(
+    difficulty: Difficulty, seed: int | None = None, max_attempts: int = 20
+) -> tuple[Grid, ValidationResult]:
+    """Genereaza un nivel pentru dificultatea (presetarea) data."""
+    params = DIFFICULTY_PRESETS[difficulty]
+    return generate_level_from_params(
+        params.cells_x,
+        params.cells_y,
+        params.enemy_count,
+        params.trap_count,
+        params.treasure_count,
+        seed=seed,
+        max_attempts=max_attempts,
+    )

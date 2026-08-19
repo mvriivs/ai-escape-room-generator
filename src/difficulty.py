@@ -38,6 +38,12 @@ WEIGHTS = np.array([1.0, 4.0, 3.0, 1.5, 22.0])
 EASY_MAX = 78.0
 MEDIUM_MAX = 141.0
 
+# Scor "tinta" reprezentativ pentru fiecare dificultate (media masurata) --
+# folosit de algoritmul genetic (genetic.py) ca obiectiv de optimizare, ca
+# sa poata cauta un nivel cat mai aproape de mijlocul benzii, nu doar
+# "undeva in interiorul ei".
+CATEGORY_TARGET_SCORE = {"easy": 61.0, "medium": 111.0, "hard": 192.0}
+
 
 @dataclass
 class DifficultyScore:

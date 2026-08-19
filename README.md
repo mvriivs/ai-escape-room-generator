@@ -10,34 +10,56 @@ Room folosind algoritmi genetici si cautare BFS.
 - [x] Validare nivel cu BFS: Start -> Key -> Door -> Exit, cu Cheia/Usa OBLIGATORII (nu doar posibile) (`src/solver.py`)
 - [x] Plasare inamici / capcane / comori (in afara traseului critic)
 - [x] **Scor de dificultate** (lungime traseu, nr. inamici, nr. capcane, nr. comori, densitate pereti), calibrat empiric (`src/difficulty.py`)
-- [x] CLI text pentru generare + vizualizare (`src/main.py`)
+- [x] **Algoritm genetic** (selectie prin turneu, crossover uniform, mutatie gaussiana, elitism) care cauta parametrii al caror scor e cel mai aproape de o tinta -- functioneaza si pentru scoruri intermediare, nu doar Easy/Medium/Hard (`src/genetic.py`)
+- [x] **Grafic evolutie fitness** pe generatii, salvat ca PNG (Matplotlib) (`src/plot_fitness.py`)
+- [x] CLI text pentru generare + vizualizare (`src/main.py`, `src/run_genetic.py`)
 - [x] Export JSON pentru front-end (`src/export_json.py`)
 - [x] Front-end Unity 3D (randare + camera + lumina + tema de culori + textura proceduala) -- `unity/`
 - [x] Personaj jucabil (miscare pe grid, WASD/sageti) cu interactiuni: cheie, usa, inamici/capcane (vieti), comori (scor)
 - [x] Alegerea dificultatii direct din Unity (dropdown la Play sau butoane Easy/Medium/Hard in HUD)
 - [x] Regenerare automata a unui nivel nou la victorie (Unity cheama Python ca subproces)
-- [ ] **Algoritm genetic** (selectie, crossover, mutatie, elitism) care optimizeaza nivelul spre dificultatea ceruta
-- [ ] **Grafic evolutie fitness** pe generatii (Matplotlib)
-- [ ] NumPy -- folosit doar pentru scor deocamdata; va fi central in algoritmul genetic
+
+Tot ce era in tema initiala e implementat. Ce s-ar mai putea rafina: legarea
+directa a algoritmului genetic de butoanele din Unity (acum Unity foloseste
+generarea directa, mai rapida; algoritmul genetic e disponibil separat prin
+`run_genetic.py`, pentru precizie mai mare pe un scor tinta exact).
+
+## Evolutia fitness-ului (exemplu)
+
+![Evolutie fitness](docs/fitness_evolution_example.png)
+
+Fitness = `-|scor_obtinut - scor_tinta|` (0 = perfect). Linia continua e cel
+mai bun individ din fiecare generatie (nu scade niciodata, datorita
+elitismului); linia punctata e media populatiei.
 
 ## Arhitectura: Python = creierul, Unity = front-end-ul
 
 Python genereaza nivelul, il valideaza cu BFS, calculeaza scorul de
-dificultate si (in curand) il optimizeaza cu algoritmul genetic. Rezultatul
-e exportat ca JSON. Unity doar citeste JSON-ul si il randeaza -- nu
-genereaza si nu valideaza nimic singur.
+dificultate si (optional) il optimizeaza cu algoritmul genetic. Rezultatul e
+exportat ca JSON. Unity doar citeste JSON-ul si il randeaza -- nu genereaza
+si nu valideaza nimic singur.
 
 ```
 ai-escape-room-generator/     <- radacina repo-ului (monorepo)
-  src/                         <- Python: generator, BFS, scor de dificultate
-  tests/                       <- teste Python
-  unity/                       <- proiect Unity (front-end)
+  src/
+    grid.py                    <- reprezentarea hartii
+    solver.py                   <- BFS: cauta drum + valideaza (Cheia/Usa obligatorii)
+    generator.py                 <- labirint perfect + plasare continut
+    difficulty.py                 <- scor de dificultate (NumPy)
+    genetic.py                     <- algoritm genetic (selectie/crossover/mutatie/elitism)
+    plot_fitness.py                 <- grafic evolutie fitness (Matplotlib)
+    export_json.py                   <- exporta un nivel ca JSON (pt. Unity)
+    main.py                           <- CLI: genereaza direct un nivel
+    run_genetic.py                     <- CLI: optimizeaza cu algoritmul genetic
+  tests/                        <- teste Python (11 teste)
+  docs/                         <- grafice exemplu, capturi
+  unity/                        <- proiect Unity (front-end)
     Assets/Scripts/
-      LevelData.cs             <- oglinda JSON-ului exportat din Python
-      LevelRenderer.cs         <- randare 3D + cheama Python (subproces)
-      LevelHUD.cs               <- overlay: status, legenda, butoane dificultate
-      PlayerController.cs       <- miscare pe grid + interactiuni
-      Bobber.cs                 <- animatie idle (plutire/rotatie)
+      LevelData.cs              <- oglinda JSON-ului exportat din Python
+      LevelRenderer.cs           <- randare 3D + cheama Python (subproces)
+      LevelHUD.cs                 <- overlay: status, legenda, butoane dificultate
+      PlayerController.cs          <- miscare pe grid + interactiuni
+      Bobber.cs                     <- animatie idle (plutire/rotatie)
     Assets/StreamingAssets/level.json   <- nivelul curent (generat, nu e sursa -- gitignored)
 ```
 
@@ -64,9 +86,17 @@ python src/main.py --difficulty medium --export unity/Assets/StreamingAssets/lev
 ## Rulare (doar partea Python, fara Unity)
 
 ```bash
+pip install -r requirements.txt
+
+# generare directa (rapida, ~100% valida, dar dificultatea e "aproximativa")
 python src/main.py --difficulty easy
 python src/main.py --difficulty medium --seed 42
 python src/main.py --difficulty hard
+
+# optimizare cu algoritm genetic (mai lenta, dar scorul iese mult mai precis)
+python src/run_genetic.py --difficulty hard
+python src/run_genetic.py --target-score 130 --generations 50 --population 40
+python src/run_genetic.py --difficulty medium --export unity/Assets/StreamingAssets/level.json
 ```
 
 ## Teste
@@ -74,6 +104,7 @@ python src/main.py --difficulty hard
 ```bash
 python tests/test_solver.py
 python tests/test_difficulty.py
+python tests/test_genetic.py
 ```
 
 (sau, daca ai `pytest` instalat: `pytest tests/`)
@@ -91,13 +122,3 @@ python tests/test_difficulty.py
 | `X`    | Inamic (te loveste: -1 viata, te trimite la Start) |
 | `T`    | Capcana (la fel ca inamicul) |
 | `$`    | Comoara (se aduna la scor) |
-
-## Pasii urmatori
-
-1. **Algoritm genetic**: populatie de niveluri (fiecare = un labirint +
-   pozitii de inamici/capcane/comori), fitness = cat de aproape e scorul de
-   dificultate (`src/difficulty.py`) de dificultatea tinta, apoi selectie +
-   crossover + mutatie + elitism pe generatii, pana convergem la un nivel cu
-   dificultatea dorita cu mai multa precizie decat generarea directa.
-2. **Grafic Matplotlib** cu evolutia fitness-ului (best/media pe generatie) --
-   fie salvat ca PNG, fie afisat live.

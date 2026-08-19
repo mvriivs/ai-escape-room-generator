@@ -10,6 +10,9 @@ venv/
 # nivel exportat pentru testare manuala la radacina proiectului (artefact, nu sursa)
 /level.json
 
+# grafice generate de run_genetic.py (artefacte, nu sursa -- se regenereaza usor)
+src/*.png
+
 # ---------- Unity ----------
 # (bazat pe template-ul oficial github/gitignore -- Unity.gitignore)
 unity/[Ll]ibrary/
