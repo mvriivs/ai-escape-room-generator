@@ -24,7 +24,7 @@ public class LevelHUD : MonoBehaviour
 
         EnsureStyles();
 
-        GUILayout.BeginArea(new Rect(12, 12, 320, 400), boxStyle);
+        GUILayout.BeginArea(new Rect(12, 12, 320, 440), boxStyle);
         GUILayout.Label($"Dificultate ceruta: {data.difficulty}", labelStyle);
         GUILayout.Label(data.is_valid ? $"Status: OK ({data.path_length} pasi)" : $"Status: INVALID", labelStyle);
         if (!data.is_valid)
@@ -36,7 +36,9 @@ public class LevelHUD : MonoBehaviour
             bool matches = data.difficulty_category == data.difficulty;
             string mark = matches ? "OK" : "diferit";
             GUILayout.Label($"Scor: {data.difficulty_score:F0} -> masurat '{data.difficulty_category}' ({mark})", labelStyle);
+            GUILayout.Label($"Pereti: {data.wall_density_pct:F0}% | Fundaturi: {data.dead_end_ratio_pct:F0}%", labelStyle);
         }
+        GUILayout.Label(renderer_.useGeneticAlgorithm ? "Generare: algoritm genetic" : "Generare: directa", labelStyle);
         GUILayout.Space(6);
         GUILayout.Label("Nivel nou:", labelStyle);
         GUILayout.BeginHorizontal();

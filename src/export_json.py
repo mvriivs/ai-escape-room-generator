@@ -20,7 +20,7 @@ cu JsonUtility din Unity, fara pachete suplimentare gen Newtonsoft):
   "difficulty_score": 111.4,
   "difficulty_category": "medium",
   "enemy_count": 3, "trap_count": 3, "treasure_count": 3,
-  "wall_density_pct": 42.0
+  "wall_density_pct": 42.0, "dead_end_ratio_pct": 18.5
 }
 """
 
@@ -59,6 +59,7 @@ def level_to_dict(grid: Grid, result: ValidationResult, difficulty: Difficulty) 
     data["trap_count"] = score.trap_count if score else grid.count(Cell.TRAP)
     data["treasure_count"] = score.treasure_count if score else grid.count(Cell.TREASURE)
     data["wall_density_pct"] = round((score.wall_density if score else 0.0) * 100, 1)
+    data["dead_end_ratio_pct"] = round((score.dead_end_ratio if score else 0.0) * 100, 1)
 
     for name, cell_type in (
         ("start", Cell.START),

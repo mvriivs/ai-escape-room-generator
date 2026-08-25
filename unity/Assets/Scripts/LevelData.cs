@@ -23,6 +23,7 @@ public class LevelData
     public string difficulty_category;
     public int enemy_count, trap_count, treasure_count;
     public float wall_density_pct;
+    public float dead_end_ratio_pct;
 
     public char CellAt(int x, int y)
     {

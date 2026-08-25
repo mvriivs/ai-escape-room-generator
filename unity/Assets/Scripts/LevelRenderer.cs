@@ -48,6 +48,12 @@ public class LevelRenderer : MonoBehaviour
     public float wallHeight = 1.0f;
     public float wallScaleXZ = 0.92f; // < 1 => se vede un mic gap intre pereti, arata mai putin "bloc masiv"
 
+    [Header("Generare (Python)")]
+    [Tooltip("true = foloseste algoritmul genetic (genetic.py, prin run_genetic.py) ca sa gaseasca un nivel cu scorul de dificultate cat mai aproape de tinta. false = generare directa (main.py), mai rapida dar mai putin precisa pe scor.")]
+    public bool useGeneticAlgorithm = true;
+    public int geneticPopulation = 16;
+    public int geneticGenerations = 15;
+
     [Header("Regenerare automata (Python) la victorie")]
     public bool autoRegenerateOnWin = true;
     public float winRegenerateDelay = 2.5f;
@@ -147,10 +153,19 @@ public class LevelRenderer : MonoBehaviour
         string exportPath = Path.Combine(Application.streamingAssetsPath, jsonFileName);
         string scriptDir = ResolvePythonScriptDir();
 
+        // Cu algoritmul genetic: cauta parametrii (dimensiune labirint,
+        // nr. inamici/capcane/comori) al caror scor de dificultate e cel
+        // mai aproape de tinta -- ~1s cu setarile de mai jos, testat.
+        // Fara el: generare directa, instant, dar scorul iese doar
+        // "aproximativ" in banda dificultatii (fara optimizare).
+        string arguments = useGeneticAlgorithm
+            ? $"run_genetic.py --difficulty {difficulty} --population {geneticPopulation} --generations {geneticGenerations} --export \"{exportPath}\""
+            : $"main.py --difficulty {difficulty} --export \"{exportPath}\"";
+
         var psi = new System.Diagnostics.ProcessStartInfo
         {
             FileName = pythonExecutable,
-            Arguments = $"main.py --difficulty {difficulty} --export \"{exportPath}\"",
+            Arguments = arguments,
             WorkingDirectory = scriptDir,
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -161,7 +176,7 @@ public class LevelRenderer : MonoBehaviour
         {
             using (var process = System.Diagnostics.Process.Start(psi))
             {
-                process.WaitForExit(5000);
+                process.WaitForExit(8000);
                 if (process.ExitCode != 0)
                 {
                     Debug.LogError("[LevelRenderer] Python a esuat: " + process.StandardError.ReadToEnd());

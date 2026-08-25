@@ -17,7 +17,6 @@ from difficulty import CATEGORY_TARGET_SCORE
 from export_json import save_level_json
 from generator import Difficulty
 from genetic import run_genetic_algorithm
-from plot_fitness import plot_fitness_history
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mutation-strength", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=None)
 
-    parser.add_argument("--plot", type=str, default="fitness_evolution.png", help="Cale PNG pentru graficul de fitness")
+    parser.add_argument("--plot", type=str, default=None, help="Cale PNG pentru graficul de fitness (omis = nu se genereaza grafic, mai rapid)")
     parser.add_argument("--export", type=str, default=None, help="Cale JSON unde se exporta nivelul castigator (ex: pentru Unity)")
     return parser.parse_args()
 
@@ -82,8 +81,11 @@ def main() -> None:
     print()
     print(best.grid.render())
 
-    plot_fitness_history(result, args.plot, title=f"Evolutie fitness -- tinta '{difficulty_label}' (scor={target:.1f})")
-    print(f"\nGrafic salvat in: {args.plot}")
+    if args.plot:
+        from plot_fitness import plot_fitness_history  # import lazy: evita costul matplotlib cand nu e nevoie de grafic (ex. apeluri interactive din Unity)
+
+        plot_fitness_history(result, args.plot, title=f"Evolutie fitness -- tinta '{difficulty_label}' (scor={target:.1f})")
+        print(f"\nGrafic salvat in: {args.plot}")
 
     if args.export:
         save_level_json(args.export, best.grid, best.result, difficulty_for_export)

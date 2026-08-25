@@ -63,7 +63,7 @@ def main() -> None:
         print(
             f"  detalii: traseu={score.path_length} pasi, inamici={score.enemy_count}, "
             f"capcane={score.trap_count}, comori={score.treasure_count}, "
-            f"densitate pereti={score.wall_density:.0%}"
+            f"densitate pereti={score.wall_density:.0%}, fundaturi={score.dead_end_ratio:.0%}"
         )
     else:
         print(f"[EROARE] Nivel invalid: {result.reason}")
