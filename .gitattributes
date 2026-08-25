@@ -1,0 +1,27 @@
+# Normalizeaza line endings automat (evita diff-uri uriase intre Windows/Mac/Linux)
+* text=auto
+
+# Cod sursa -- text explicit
+*.py text
+*.cs text diff=csharp
+*.md text
+.gitignore text
+.gitattributes text
+
+# Fisierele Unity sunt YAML text (cu "Force Text" serialization, default-ul
+# proiectului) -- il tratam ca text ca sa se poata face diff/merge linie cu
+# linie, nu ca blob binar.
+*.unity text merge=unityyamlmerge eol=lf
+*.prefab text merge=unityyamlmerge eol=lf
+*.asset text merge=unityyamlmerge eol=lf
+*.meta text merge=unityyamlmerge eol=lf
+*.mat text merge=unityyamlmerge eol=lf
+
+# Assets binare -- niciodata text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.fbx binary
+*.psd binary
+*.wav binary
+*.mp3 binary

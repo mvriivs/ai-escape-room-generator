@@ -109,6 +109,42 @@ python tests/test_genetic.py
 
 (sau, daca ai `pytest` instalat: `pytest tests/`)
 
+## Colaborare
+
+**Setup pentru cine se alatura:**
+1. `git clone https://github.com/mvriivs/ai-escape-room-generator.git`
+2. Python: `pip install -r requirements.txt`
+3. Unity: instaleaza [Unity Hub](https://unity.com/download), apoi in Hub ->
+   "Add project from disk" -> selecteaza folderul `unity/`. Necesita Unity
+   **6000.5.3f1** (sau apropiat) instalat -- Hub-ul cere sa-l instalezi daca
+   nu-l ai.
+4. Nu trebuie configurat nimic manual in Unity -- la Play, scena si tot
+   continutul se construiesc automat din cod.
+
+**Flux de lucru recomandat (evita conflictele):**
+- Fiecare lucreaza pe un branch propriu (`git checkout -b nume/feature`) si
+  deschide Pull Request spre `main`, in loc sa dea push direct pe `main`.
+- Inainte sa incepi de lucru: `git pull origin main`.
+- **Partea Unity** (`unity/Assets/Scripts/*.cs`) e cod C# normal -- se
+  merge-uieste text ca orice alt cod, fara probleme.
+- **Scena Unity** (`unity/Assets/Scena.unity`) e practic goala (totul se
+  construieste la runtime din script, vezi `LevelRenderer.Bootstrap()`) --
+  deci foarte putin motiv sa apara conflicte acolo. Daca totusi cineva
+  adauga obiecte manual in scena, mai bine anuntati-va reciproc inainte, ca
+  sa nu editati scena in acelasi timp amandoi.
+- `.gitattributes` e deja configurat sa trateze fisierele Unity (`.unity`,
+  `.prefab`, `.asset`, `.meta`) ca text, cu `unityyamlmerge` ca merge tool --
+  daca apare totusi un conflict pe un fisier Unity, cea mai sigura solutie
+  e sa alegi o singura varianta completa (`--ours`/`--theirs`), nu editare
+  manuala linie cu linie.
+- `Library/`, `Temp/`, `Logs/` sunt gitignored -- fiecare le regenereaza
+  local (Unity le recreeaza automat la prima deschidere), nu se urca pe git.
+
+**Ca sa adaugi pe cineva ca sa poata da push direct** (optional, alternativa
+la Pull Requests de la un fork): pe GitHub, `Settings` -> `Collaborators` ->
+`Add people` -> username/email -> persoana primeste o invitatie pe care
+trebuie sa o accepte.
+
 ## Legenda simboluri
 
 | Simbol | Semnificatie |
