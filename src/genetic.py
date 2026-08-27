@@ -29,9 +29,11 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-
+import sys
+import os
 import numpy as np
-
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+from baseline_fitness import baseline_linear_fitness
 from difficulty import CATEGORY_TARGET_SCORE, DifficultyScore, compute_difficulty_score
 from generator import Difficulty, generate_level_from_params
 from grid import Grid
@@ -68,10 +70,9 @@ def _clamp_genes(genes: dict[str, float]) -> dict[str, int]:
         clamped[name] = int(max(lo, min(hi, round(value))))
     return clamped
 
-
-def evaluate(genes: dict[str, int], target_score: float, rng: random.Random) -> Individual:
-    """Construieste efectiv nivelul descris de `genes` si calculeaza fitness-ul
-    lui fata de `target_score`."""
+# am modificat functia - andreea 27.08
+def evaluate(genes: dict[str, int], difficulty_name: str, rng: random.Random) -> Individual:
+    # construieste efectiv nivelul descris de `genes` si calculeaza fitness-ul
     grid, result = generate_level_from_params(
         genes["cells_x"],
         genes["cells_y"],
@@ -80,11 +81,15 @@ def evaluate(genes: dict[str, int], target_score: float, rng: random.Random) -> 
         genes["treasure_count"],
         seed=rng.randrange(1_000_000),
     )
+    
     if grid is None or result is None or not result.is_valid:
-        return Individual(genes=genes, grid=grid, result=result, fitness=float("-inf"))
+        return Individual(genes=genes, grid=grid, result=result, fitness=0.0)
 
     score = compute_difficulty_score(grid, result)
-    fitness = -abs(score.raw_score - target_score)
+    
+  
+    fitness = baseline_linear_fitness(score, difficulty_name)
+    
     return Individual(genes=genes, grid=grid, result=result, score=score, fitness=fitness)
 
 
@@ -116,7 +121,7 @@ class GAResult:
 
 
 def run_genetic_algorithm(
-    target_score: float,
+    difficulty_name: str,
     population_size: int = 24,
     generations: int = 30,
     elitism: int = 2,
@@ -130,7 +135,7 @@ def run_genetic_algorithm(
     fitness-ului (pentru graficul de evolutie)."""
     rng = random.Random(seed)
 
-    population = [evaluate(_random_genes(rng), target_score, rng) for _ in range(population_size)]
+    population = [evaluate(_random_genes(rng), difficulty_name, rng) for _ in range(population_size)]
 
     best_history: list[float] = []
     mean_history: list[float] = []
@@ -150,12 +155,14 @@ def run_genetic_algorithm(
             parent_b = _tournament_select(population, rng)
             child_genes = _crossover(parent_a, parent_b, rng)
             child_genes = _mutate(child_genes, rng, mutation_rate, mutation_strength)
-            next_population.append(evaluate(child_genes, target_score, rng))
+            next_population.append(evaluate(child_genes, difficulty_name, rng))
 
         population = next_population
 
     record(population)  # generatia finala
 
+    # caut scorul tinta pt a il pune in rezultat
+    target_score = CATEGORY_TARGET_SCORE[difficulty_name]
     return GAResult(
         best=population[0],
         best_fitness_history=best_history,
@@ -167,5 +174,4 @@ def run_genetic_algorithm(
 def run_for_difficulty(difficulty: Difficulty, **kwargs) -> GAResult:
     """Comoditate: ruleaza algoritmul genetic cu scorul tinta calibrat pentru
     o dificultate Easy/Medium/Hard, in loc sa dai un scor brut manual."""
-    target = CATEGORY_TARGET_SCORE[difficulty.value]
-    return run_genetic_algorithm(target, **kwargs)
+    return run_genetic_algorithm(difficulty.value, **kwargs)

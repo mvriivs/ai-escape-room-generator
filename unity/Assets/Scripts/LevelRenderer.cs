@@ -159,7 +159,7 @@ public class LevelRenderer : MonoBehaviour
         // Fara el: generare directa, instant, dar scorul iese doar
         // "aproximativ" in banda dificultatii (fara optimizare).
         string arguments = useGeneticAlgorithm
-            ? $"run_genetic.py --difficulty {difficulty} --population {geneticPopulation} --generations {geneticGenerations} --export \"{exportPath}\""
+            ? $"run_new_genetic.py --difficulty {difficulty} --population {geneticPopulation} --generations {geneticGenerations} --export \"{exportPath}\""
             : $"main.py --difficulty {difficulty} --export \"{exportPath}\"";
 
         var psi = new System.Diagnostics.ProcessStartInfo
