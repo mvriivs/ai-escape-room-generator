@@ -75,6 +75,11 @@ public class LevelRenderer : MonoBehaviour
     private bool regenerateScheduled;
     private float zoomMultiplier = 1f; // reglat cu rotita mouse-ului, vezi Update()
 
+    // VARIABILE NOI PENTRU ROTIREA CAMEREI - andreea
+    private float rotationX = 45f; // Unghiul pe verticala (pitch)
+    private float rotationY = -35f; // Unghiul pe orizontala (yaw)
+    private float rotationSpeed = 3f;
+
     // Proiectul porneste fara nicio scena salvata -- ca sa nu fie nevoie de
     // setup manual in Editor, cream automat obiectul cu LevelRenderer +
     // LevelHUD la intrarea in Play Mode, daca nu exista deja unul in scena.
@@ -125,6 +130,19 @@ public class LevelRenderer : MonoBehaviour
 
         HandleZoomInput();
 
+        // Roteste camera daca dai Click Dreapta (sau Click Mijloc / Scroll) si misti mouse-ul
+        if (Input.GetMouseButton(1) || Input.GetMouseButton(2))
+        {
+            rotationY += Input.GetAxis("Mouse X") * rotationSpeed * 10f;
+            rotationX -= Input.GetAxis("Mouse Y") * rotationSpeed * 10f;
+            rotationX = Mathf.Clamp(rotationX, 10f, 85f); 
+            
+            if (Current != null)
+            {
+                ApplyCameraTransform(Current);
+            }
+        }
+
         if (autoRegenerateOnWin && !regenerateScheduled && Player != null && Player.HasWon)
         {
             regenerateScheduled = true;
@@ -159,7 +177,7 @@ public class LevelRenderer : MonoBehaviour
         // Fara el: generare directa, instant, dar scorul iese doar
         // "aproximativ" in banda dificultatii (fara optimizare).
         string arguments = useGeneticAlgorithm
-            ? $"run_new_genetic.py --difficulty {difficulty} --population {geneticPopulation} --generations {geneticGenerations} --export \"{exportPath}\""
+            ? $"run_genetic.py --difficulty {difficulty} --population {geneticPopulation} --generations {geneticGenerations} --export \"{exportPath}\""
             : $"main.py --difficulty {difficulty} --export \"{exportPath}\"";
 
         var psi = new System.Diagnostics.ProcessStartInfo
@@ -622,6 +640,25 @@ public class LevelRenderer : MonoBehaviour
 
     private void FrameCamera(LevelData data)
     {
+        // Camera cam = Camera.main;
+        // if (cam == null) return;
+
+        // float cx = (data.width - 1) * tileSize / 2f;
+        // float cz = (data.height - 1) * tileSize / 2f;
+        // float span = Mathf.Max(data.width, data.height) * tileSize * zoomMultiplier;
+
+        // cam.transform.position = new Vector3(cx, span * 0.95f, cz - span * 0.8f);
+        // cam.transform.LookAt(new Vector3(cx, 0f, cz));
+        // cam.fieldOfView = 46f;
+        // cam.nearClipPlane = 0.1f;
+        // cam.farClipPlane = span * 6f;
+        rotationX = 55f;
+        rotationY = -35f;
+        ApplyCameraTransform(data);
+    }
+
+    private void ApplyCameraTransform(LevelData data)
+    {
         Camera cam = Camera.main;
         if (cam == null) return;
 
@@ -629,8 +666,15 @@ public class LevelRenderer : MonoBehaviour
         float cz = (data.height - 1) * tileSize / 2f;
         float span = Mathf.Max(data.width, data.height) * tileSize * zoomMultiplier;
 
-        cam.transform.position = new Vector3(cx, span * 0.95f, cz - span * 0.8f);
-        cam.transform.LookAt(new Vector3(cx, 0f, cz));
+        // Calcul pozitia camerei pe o sfera in jurul centrului labirintului folosind unghiurile de rotatie
+        Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0f);
+        Vector3 center = new Vector3(cx, 0f, cz);
+        
+        // Distanta fata de centru in functie de marimea hartii si zoom
+        Vector3 offset = rotation * new Vector3(0f, 0f, -span * 1.2f);
+
+        cam.transform.position = center + offset;
+        cam.transform.LookAt(center);
         cam.fieldOfView = 46f;
         cam.nearClipPlane = 0.1f;
         cam.farClipPlane = span * 6f;
