@@ -1,12 +1,19 @@
 """
-CLI: ruleaza algoritmul genetic pana obtine un nivel cat mai apropiat de
-dificultatea ceruta, afiseaza evolutia, salveaza graficul de fitness si
-(optional) exporta nivelul castigator pentru Unity.
+CLI pentru rularea algoritmului genetic.
 
 Exemple:
+
+    python src/run_genetic.py --difficulty easy
+
+    python src/run_genetic.py --difficulty medium
+
     python src/run_genetic.py --difficulty hard
-    python src/run_genetic.py --target-score 130 --generations 50 --population 40
-    python src/run_genetic.py --difficulty medium --export ../unity/Assets/StreamingAssets/level.json
+
+    python src/run_genetic.py --difficulty medium --generations 50
+
+    python src/run_genetic.py --difficulty hard --plot fitness.png
+
+    python src/run_genetic.py --difficulty medium --export level.json
 """
 
 from __future__ import annotations
@@ -20,38 +27,176 @@ from genetic import run_genetic_algorithm
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Optimizare de nivel cu algoritm genetic")
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Optimizare Escape Room "
+            "cu algoritm genetic"
+        )
+    )
+
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--difficulty", choices=[d.value for d in Difficulty], help="Foloseste scorul tinta calibrat pentru aceasta dificultate")
-    group.add_argument("--target-score", type=float, help="Scor de dificultate tinta, exact (suprascrie --difficulty)")
 
-    parser.add_argument("--population", type=int, default=24)
-    parser.add_argument("--generations", type=int, default=30)
-    parser.add_argument("--elitism", type=int, default=2)
-    parser.add_argument("--mutation-rate", type=float, default=0.3)
-    parser.add_argument("--mutation-strength", type=float, default=0.15)
-    parser.add_argument("--seed", type=int, default=None)
+    group.add_argument(
+        "--difficulty",
+        choices=[
+            d.value
+            for d in Difficulty
+        ],
+        help=(
+            "Dificultatea pentru care "
+            "se optimizeaza nivelul"
+        ),
+    )
 
-    parser.add_argument("--plot", type=str, default=None, help="Cale PNG pentru graficul de fitness (omis = nu se genereaza grafic, mai rapid)")
-    parser.add_argument("--export", type=str, default=None, help="Cale JSON unde se exporta nivelul castigator (ex: pentru Unity)")
+    group.add_argument(
+        "--target-score",
+        type=float,
+        help=(
+            "Scor tinta exact"
+        ),
+    )
+
+    parser.add_argument(
+        "--population",
+        type=int,
+        default=24,
+        help="Dimensiunea populatiei",
+    )
+
+    parser.add_argument(
+        "--generations",
+        type=int,
+        default=30,
+        help="Numarul de generatii",
+    )
+
+    parser.add_argument(
+        "--elitism",
+        type=int,
+        default=2,
+        help="Numarul indivizilor pastrati",
+    )
+
+    parser.add_argument(
+        "--mutation-rate",
+        type=float,
+        default=0.3,
+        help="Probabilitatea de mutatie",
+    )
+
+    parser.add_argument(
+        "--mutation-strength",
+        type=float,
+        default=0.15,
+        help="Intensitatea mutatiei",
+    )
+
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed pentru reproducibilitate",
+    )
+
+    parser.add_argument(
+        "--plot",
+        type=str,
+        default=None,
+        help=(
+            "Fisier PNG pentru istoricul "
+            "fitness-ului"
+        ),
+    )
+
+    parser.add_argument(
+        "--export",
+        type=str,
+        default=None,
+        help=(
+            "Fisier JSON pentru nivelul final"
+        ),
+    )
+
     return parser.parse_args()
 
 
 def main() -> None:
+
     args = parse_args()
 
-    if args.target_score is not None:
-        target = args.target_score
-        difficulty_label = f"scor={target:.1f}"
-        difficulty_for_export = Difficulty.MEDIUM  # doar eticheta din JSON; scorul e cel real
-    else:
-        difficulty_value = args.difficulty or Difficulty.MEDIUM.value
-        target = CATEGORY_TARGET_SCORE[difficulty_value]
-        difficulty_label = difficulty_value
-        difficulty_for_export = Difficulty(difficulty_value)
+    # -------------------------------------------------------------
+    # STABILIRE TARGET
+    # -------------------------------------------------------------
 
-    print(f"Rulez algoritmul genetic: tinta='{difficulty_label}' (scor={target:.1f}), "
-          f"populatie={args.population}, generatii={args.generations}")
+    if args.target_score is not None:
+
+        target = args.target_score
+
+        difficulty_label = (
+            f"scor={target:.1f}"
+        )
+
+        # Pentru export avem nevoie de o eticheta.
+        difficulty_for_export = Difficulty.MEDIUM
+
+        difficulty_value = "medium"
+
+    else:
+
+        difficulty_value = (
+            args.difficulty
+            or Difficulty.MEDIUM.value
+        )
+
+        target = CATEGORY_TARGET_SCORE[
+            difficulty_value
+        ]
+
+        difficulty_label = (
+            difficulty_value
+        )
+
+        difficulty_for_export = Difficulty(
+            difficulty_value
+        )
+
+    # -------------------------------------------------------------
+    # AFISARE CONFIGURATIE
+    # -------------------------------------------------------------
+
+    print()
+    print(
+        "=========================================="
+    )
+    print(
+        " AI ESCAPE ROOM - ALGORITM GENETIC"
+    )
+    print(
+        "=========================================="
+    )
+
+    print(
+        f"Dificultate: {difficulty_label}"
+    )
+
+    print(
+        f"Scor tinta: {target:.1f}"
+    )
+
+    print(
+        f"Populatie: {args.population}"
+    )
+
+    print(
+        f"Generatii: {args.generations}"
+    )
+
+    print()
+
+    # -------------------------------------------------------------
+    # RUN GA
+    # -------------------------------------------------------------
 
     result = run_genetic_algorithm(
         target_score=target,
@@ -61,35 +206,190 @@ def main() -> None:
         mutation_rate=args.mutation_rate,
         mutation_strength=args.mutation_strength,
         seed=args.seed,
+        difficulty=difficulty_value,
     )
 
     best = result.best
+
+    # -------------------------------------------------------------
+    # REZULTAT
+    # -------------------------------------------------------------
+
+    print(
+        "Cel mai bun individ gasit:"
+    )
+
+    print(
+        f"  Fitness final: "
+        f"{best.fitness:.4f}"
+    )
+
+    print(
+        f"  Scor dificultate: "
+        f"{best.score.raw_score:.2f}"
+    )
+
+    print(
+        f"  Scor tinta: "
+        f"{target:.2f}"
+    )
+
+    print(
+        f"  Categorie masurata: "
+        f"{best.score.category}"
+    )
+
     print()
-    print(f"Cel mai bun individ gasit (fitness={best.fitness:.2f}):")
-    print(f"  gene: {best.genes}")
-    if best.score:
+
+    print(
+        "Gene:"
+    )
+
+    for name, value in best.genes.items():
         print(
-            f"  scor obtinut={best.score.raw_score:.1f} (tinta={target:.1f}, "
-            f"diferenta={abs(best.score.raw_score - target):.1f})"
+            f"  {name}: {value}"
         )
-        print(f"  categorie masurata: '{best.score.category}'")
-        print(
-            f"  traseu={best.score.path_length} pasi, inamici={best.score.enemy_count}, "
-            f"capcane={best.score.trap_count}, comori={best.score.treasure_count}, "
-            f"densitate pereti={best.score.wall_density:.0%}"
-        )
+
+    # -------------------------------------------------------------
+    # CARACTERISTICI
+    # -------------------------------------------------------------
+
     print()
-    print(best.grid.render())
+
+    print(
+        "Caracteristici:"
+    )
+
+    print(
+        f"  traseu: "
+        f"{best.score.path_length} pasi"
+    )
+
+    print(
+        f"  inamici: "
+        f"{best.score.enemy_count}"
+    )
+
+    print(
+        f"  capcane: "
+        f"{best.score.trap_count}"
+    )
+
+    print(
+        f"  comori: "
+        f"{best.score.treasure_count}"
+    )
+
+    print(
+        f"  densitate pereti: "
+        f"{best.score.wall_density:.2%}"
+    )
+
+    print(
+        f"  dead-end ratio: "
+        f"{best.score.dead_end_ratio:.2%}"
+    )
+
+    # -------------------------------------------------------------
+    # FITNESS BREAKDOWN
+    # -------------------------------------------------------------
+
+    if best.fitness_breakdown is not None:
+
+        breakdown = (
+            best.fitness_breakdown
+        )
+
+        print()
+
+        print(
+            "Descompunere fitness:"
+        )
+
+        print(
+            f"  similaritate scor: "
+            f"{breakdown.total_similarity:.4f}"
+        )
+
+        print(
+            f"  similaritate caracteristici: "
+            f"{breakdown.feature_similarity:.4f}"
+        )
+
+        print(
+            f"  complexitate structurala: "
+            f"{breakdown.structural_complexity:.4f}"
+        )
+
+        print(
+            f"  bonus interactiuni: "
+            f"{breakdown.interaction_bonus:.4f}"
+        )
+
+        print(
+            f"  penalizare dezechilibru: "
+            f"{breakdown.balance_penalty:.4f}"
+        )
+
+    # -------------------------------------------------------------
+    # GRID
+    # -------------------------------------------------------------
+
+    print()
+
+    print(
+        "Nivel generat:"
+    )
+
+    print(
+        best.grid.render()
+    )
+
+    # -------------------------------------------------------------
+    # PLOT
+    # -------------------------------------------------------------
 
     if args.plot:
-        from plot_fitness import plot_fitness_history  # import lazy: evita costul matplotlib cand nu e nevoie de grafic (ex. apeluri interactive din Unity)
 
-        plot_fitness_history(result, args.plot, title=f"Evolutie fitness -- tinta '{difficulty_label}' (scor={target:.1f})")
-        print(f"\nGrafic salvat in: {args.plot}")
+        from plot_fitness import (
+            plot_fitness_history,
+        )
+
+        plot_fitness_history(
+            result,
+            args.plot,
+            title=(
+                "Evolutie fitness - "
+                f"{difficulty_label}"
+            ),
+        )
+
+        print()
+
+        print(
+            f"Grafic salvat in: "
+            f"{args.plot}"
+        )
+
+    # -------------------------------------------------------------
+    # EXPORT JSON
+    # -------------------------------------------------------------
 
     if args.export:
-        save_level_json(args.export, best.grid, best.result, difficulty_for_export)
-        print(f"Nivel exportat in: {args.export}")
+
+        save_level_json(
+            args.export,
+            best.grid,
+            best.result,
+            difficulty_for_export,
+        )
+
+        print()
+
+        print(
+            f"Nivel exportat in: "
+            f"{args.export}"
+        )
 
 
 if __name__ == "__main__":
