@@ -1,25 +1,15 @@
 """
 Scor de dificultate pentru un nivel generat si validat.
 
-Combina mai multe caracteristici ale nivelului -- lungimea traseului optim,
-numarul de inamici/capcane/comori, densitatea peretilor si densitatea
-zonelor accesibile -- intr-un singur numar, printr-o suma ponderata (numpy).
+Scorul combina:
+    - lungimea traseului optim;
+    - numarul de inamici;
+    - numarul de capcane;
+    - numarul de comori;
+    - densitatea peretilor;
+    - proportia de fundaturi.
 
-Nota despre "densitatea peretilor si a zonelor accesibile": intr-un labirint
-facut doar din WALL/FLOOR, procentul de zone accesibile e literal 1 minus
-procentul de pereti (perfect complementare) -- a le pune pe amandoua ca
-ponderi separate n-ar aduce nicio informatie noua, matematic ar fi doar o
-rescriere a aceleiasi caracteristici. De-asta "densitatea zonelor
-accesibile" e operationalizata aici ca ceva structural diferit: proportia
-de celule accesibile care sunt FUNDATURI (`dead_end_ratio`) -- cat de
-"ramificat"/confuz e labirintul, nu doar cat de multa piatra are. Doua
-labirinturi cu aceeasi densitate de pereti pot avea numar foarte diferit de
-fundaturi, deci chiar aduce semnal independent.
-
-Acest scor e "tinta" pe care algoritmul genetic o va optimiza: fitness-ul
-unui nivel candidat va fi cat de aproape e scorul lui de scorul cerut pentru
-dificultatea aleasa de utilizator (Easy/Medium/Hard), nu doar "grid mai
-mare = mai greu".
+Scorul este calculat printr-o suma ponderata.
 """
 
 from __future__ import annotations
@@ -31,35 +21,50 @@ import numpy as np
 from grid import Cell, Grid, Position
 from solver import ValidationResult
 
-# Ordinea caracteristicilor conteaza -- trebuie sa corespunda cu WEIGHTS.
-FEATURE_NAMES = ("path_length", "enemies", "traps", "treasures", "wall_density", "dead_end_ratio")
 
-# Ponderi: cat de mult conteaza fiecare caracteristica in scorul final.
-# wall_density si dead_end_ratio sunt proportii (0..1), de-asta ponderile lor
-# sunt mult mai mari, ca sa fie comparabile cu celelalte caracteristici
-# (numere intregi).
-WEIGHTS = np.array([1.0, 4.0, 3.0, 1.5, 18.0, 14.0])
+# Ordinea caracteristicilor trebuie sa corespunda cu WEIGHTS.
+FEATURE_NAMES = (
+    "path_length",
+    "enemies",
+    "traps",
+    "treasures",
+    "wall_density",
+    "dead_end_ratio",
+)
 
-# Praguri de categorie, calibrate empiric: am generat 50 de niveluri pentru
-# fiecare dificultate (seed 0..49) si am masurat distributia scorurilor,
-# dupa adaugarea lui dead_end_ratio --
-#   easy:   52 .. 66   (medie ~60)
-#   medium: 89 .. 123  (medie ~109)
-#   hard:   157 .. 221 (medie ~191)
-# pragurile de mai jos sunt la mijlocul distantei dintre categorii vecine.
-# Ajustabile daca se schimba DIFFICULTY_PRESETS din generator.py sau WEIGHTS.
+
+# Ponderile caracteristicilor.
+WEIGHTS = np.array(
+    [
+        1.0,   # path_length
+        4.0,   # enemies
+        3.0,   # traps
+        1.5,   # treasures
+        18.0,  # wall_density
+        14.0,  # dead_end_ratio
+    ]
+)
+
+
+# Praguri pentru clasificarea dificultatii.
 EASY_MAX = 77.5
 MEDIUM_MAX = 140.0
 
-# Scor "tinta" reprezentativ pentru fiecare dificultate (media masurata) --
-# folosit de algoritmul genetic (genetic.py) ca obiectiv de optimizare, ca
-# sa poata cauta un nivel cat mai aproape de mijlocul benzii, nu doar
-# "undeva in interiorul ei".
-CATEGORY_TARGET_SCORE = {"easy": 60.0, "medium": 109.0, "hard": 191.0}
+
+# Scorurile tinta folosite de algoritmul genetic.
+CATEGORY_TARGET_SCORE = {
+    "easy": 60.0,
+    "medium": 109.0,
+    "hard": 191.0,
+}
 
 
 @dataclass
 class DifficultyScore:
+    """
+    Contine toate caracteristicile care participa la scorul de dificultate.
+    """
+
     path_length: int
     enemy_count: int
     trap_count: int
@@ -70,16 +75,23 @@ class DifficultyScore:
 
     @property
     def category(self) -> str:
-        """Dificultatea "masurata" a nivelului, dedusa din scor (poate sa nu
-        coincida cu dificultatea CERUTA -- de-asta avem nevoie de algoritmul
-        genetic, ca sa le aducem cat mai aproape)."""
+        """
+        Determina categoria nivelului pe baza scorului final.
+        """
+
         if self.raw_score <= EASY_MAX:
             return "easy"
+
         if self.raw_score <= MEDIUM_MAX:
             return "medium"
+
         return "hard"
 
     def as_dict(self) -> dict:
+        """
+        Returneaza scorul sub forma de dictionar.
+        """
+
         return {
             "path_length": self.path_length,
             "enemy_count": self.enemy_count,
@@ -93,32 +105,52 @@ class DifficultyScore:
 
 
 def _dead_end_ratio(grid: Grid) -> float:
-    """Proportia de celule accesibile care sunt fundaturi (au un singur
-    vecin accesibil) -- caracteristica structurala, independenta de
-    densitatea bruta de pereti (vezi nota din capul fisierului)."""
+    """
+    Calculeaza proportia celulelor accesibile care sunt fundaturi.
+
+    O fundatura este o celula accesibila care are cel mult un vecin
+    accesibil.
+    """
+
     walkable_positions = [
         Position(x, y)
         for y in range(grid.height)
         for x in range(grid.width)
         if grid.is_walkable(Position(x, y))
     ]
+
     if not walkable_positions:
         return 0.0
 
     dead_ends = sum(
         1
         for pos in walkable_positions
-        if sum(1 for n in grid.neighbors(pos) if grid.is_walkable(n)) <= 1
+        if sum(
+            1
+            for neighbor in grid.neighbors(pos)
+            if grid.is_walkable(neighbor)
+        ) <= 1
     )
+
     return dead_ends / len(walkable_positions)
 
 
-def compute_difficulty_score(grid: Grid, result: ValidationResult) -> DifficultyScore:
-    """Calculeaza scorul de dificultate al unui nivel deja validat.
-    Presupune ca `result.is_valid` e True (scorul unui nivel invalid nu are
-    sens - nu exista "lungime de traseu" daca nu exista traseu)."""
+def compute_difficulty_score(
+    grid: Grid,
+    result: ValidationResult,
+) -> DifficultyScore:
+    """
+    Calculeaza scorul de dificultate pentru un nivel validat.
+    """
+
     total_cells = grid.width * grid.height
-    wall_density = grid.count(Cell.WALL) / total_cells if total_cells else 0.0
+
+    wall_density = (
+        grid.count(Cell.WALL) / total_cells
+        if total_cells
+        else 0.0
+    )
+
     dead_end_ratio = _dead_end_ratio(grid)
 
     features = np.array(
@@ -129,7 +161,8 @@ def compute_difficulty_score(grid: Grid, result: ValidationResult) -> Difficulty
             grid.count(Cell.TREASURE),
             wall_density,
             dead_end_ratio,
-        ]
+        ],
+        dtype=float,
     )
 
     raw_score = float(np.dot(features, WEIGHTS))
