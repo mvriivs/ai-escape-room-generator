@@ -48,9 +48,14 @@ public class LevelRenderer : MonoBehaviour
     public float wallHeight = 1.0f;
     public float wallScaleXZ = 0.92f; // < 1 => se vede un mic gap intre pereti, arata mai putin "bloc masiv"
 
+    // Cele 3 functii de fitness ale echipei (vezi genetic.py) -- alegi din
+    // Inspector care ruleaza in joc, ca sa le poti demonstra pe rand.
+    public enum FitnessMode { Default, Baseline, Complex }
+
     [Header("Generare (Python)")]
     [Tooltip("true = foloseste algoritmul genetic (genetic.py, prin run_genetic.py) ca sa gaseasca un nivel cu scorul de dificultate cat mai aproape de tinta. false = generare directa (main.py), mai rapida dar mai putin precisa pe scor.")]
     public bool useGeneticAlgorithm = true;
+    public FitnessMode fitnessMode = FitnessMode.Default;
     public int geneticPopulation = 16;
     public int geneticGenerations = 15;
 
@@ -176,8 +181,9 @@ public class LevelRenderer : MonoBehaviour
         // mai aproape de tinta -- ~1s cu setarile de mai jos, testat.
         // Fara el: generare directa, instant, dar scorul iese doar
         // "aproximativ" in banda dificultatii (fara optimizare).
+        string fitnessArg = fitnessMode.ToString().ToLowerInvariant(); // Default|Baseline|Complex -> default|baseline|complex
         string arguments = useGeneticAlgorithm
-            ? $"run_genetic.py --difficulty {difficulty} --population {geneticPopulation} --generations {geneticGenerations} --export \"{exportPath}\""
+            ? $"run_genetic.py --difficulty {difficulty} --fitness {fitnessArg} --population {geneticPopulation} --generations {geneticGenerations} --export \"{exportPath}\""
             : $"main.py --difficulty {difficulty} --export \"{exportPath}\"";
 
         var psi = new System.Diagnostics.ProcessStartInfo

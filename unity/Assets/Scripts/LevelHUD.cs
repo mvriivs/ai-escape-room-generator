@@ -38,7 +38,11 @@ public class LevelHUD : MonoBehaviour
             GUILayout.Label($"Scor: {data.difficulty_score:F0} -> masurat '{data.difficulty_category}' ({mark})", labelStyle);
             GUILayout.Label($"Pereti: {data.wall_density_pct:F0}% | Fundaturi: {data.dead_end_ratio_pct:F0}%", labelStyle);
         }
-        GUILayout.Label(renderer_.useGeneticAlgorithm ? "Generare: algoritm genetic" : "Generare: directa", labelStyle);
+        GUILayout.Label(
+            renderer_.useGeneticAlgorithm
+                ? $"Generare: algoritm genetic (fitness: {renderer_.fitnessMode})"
+                : "Generare: directa",
+            labelStyle);
         GUILayout.Space(6);
         GUILayout.Label("Nivel nou:", labelStyle);
         GUILayout.BeginHorizontal();
