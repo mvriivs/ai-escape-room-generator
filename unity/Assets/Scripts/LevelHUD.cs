@@ -79,7 +79,7 @@ public class LevelHUD : MonoBehaviour
         GUILayout.Space(4);
         GUILayout.Label("WASD / sageti = miscare", labelStyle);
         GUILayout.Label("L = reincarca | N = nivel nou", labelStyle);
-        GUILayout.Label("+ / - = zoom", labelStyle);
+        GUILayout.Label("+ / - = zoom | click-dreapta + mouse = rotire camera", labelStyle);
 
         if (player != null)
         {

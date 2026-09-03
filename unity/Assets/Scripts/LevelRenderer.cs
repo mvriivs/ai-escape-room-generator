@@ -638,20 +638,11 @@ public class LevelRenderer : MonoBehaviour
         RenderSettings.ambientLight = new Color(0.20f, 0.19f, 0.30f); // umbra rece, pt contrast cu lumina calda
     }
 
+    // Reseteaza camera la unghiul implicit (apelata la fiecare nivel nou) --
+    // rotatia curenta (drag cu click-dreapta/mijloc, vezi Update()) se
+    // aplica peste acest unghi de baza, prin ApplyCameraTransform.
     private void FrameCamera(LevelData data)
     {
-        // Camera cam = Camera.main;
-        // if (cam == null) return;
-
-        // float cx = (data.width - 1) * tileSize / 2f;
-        // float cz = (data.height - 1) * tileSize / 2f;
-        // float span = Mathf.Max(data.width, data.height) * tileSize * zoomMultiplier;
-
-        // cam.transform.position = new Vector3(cx, span * 0.95f, cz - span * 0.8f);
-        // cam.transform.LookAt(new Vector3(cx, 0f, cz));
-        // cam.fieldOfView = 46f;
-        // cam.nearClipPlane = 0.1f;
-        // cam.farClipPlane = span * 6f;
         rotationX = 55f;
         rotationY = -35f;
         ApplyCameraTransform(data);
